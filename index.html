@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'self'; frame-ancestors 'none';">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta name="referrer" content="no-referrer">
+<!--
+  ============================================================
+  SHEETPOLISH — DATA CLEANER WEBSITE
+  ============================================================
+  This is one single file containing everything: layout (HTML),
+  styling (CSS inside <style>), and behavior (JavaScript inside <script>).
+
+  QUICK GUIDE — WHERE TO CHANGE THINGS:
+  1. Colors           -> search for ":root{" in the CSS (below)
+  2. Website title    -> the <title> tag right below this comment
+  3. Headline/text    -> search for "hero-inner" further down in the HTML
+  4. Your email link  -> search for "mailto:"
+  5. Instagram/Facebook links -> search for "social-row"
+  6. Upwork link       -> search for "Hire me on Upwork"
+  7. Sample demo data  -> search for "SAMPLE_CSV" in the JavaScript
+  8. Cleaning logic (what counts as duplicate/invalid) -> search for "processRows"
+  ============================================================
+-->
+<title>Messy to Clean — Free Spreadsheet Cleaner by Sonu Kumar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  /* ===== COLORS =====
+     Change any hex code below to change the whole website's color scheme.
+     Every element on the page uses one of these — nothing is hardcoded elsewhere. */
+  :root{
+    --bg:#F3F4F0;          /* page background */
+    --surface:#FFFFFF;      /* card/box background */
+    --ink:#1C2321;          /* main text color */
+    --muted:#5B665F;        /* secondary/lighter text */
+    --line:#DDE1DA;         /* borders */
+    --teal:#2F6F5E;         /* main brand color (buttons, headings) */
+    --teal-dark:#234F43;    /* darker shade, used on hover */
+    --teal-tint:#E4EFEA;    /* light green background tint */
+    --amber:#B5652B;        /* accent color for "flagged" warnings */
+    --amber-tint:#F5E7DC;   /* light orange background tint */
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    line-height:1.5;
+    overflow-x:hidden;
+  }
+  .wrap{max-width:760px; margin:0 auto; padding:0 24px;}
+
+  /* ---------- Hero ---------- */
+  .hero{
+    position:relative;
+    padding:64px 0 40px;
+    overflow:hidden;
+  }
+  .hero-bg{
+    position:absolute; inset:-20% -10% auto -10%;
+    height:420px;
+    background:
+      radial-gradient(circle at 15% 30%, rgba(47,111,94,0.10), transparent 55%),
+      radial-gradient(circle at 85% 10%, rgba(181,101,43,0.08), transparent 50%);
+    z-index:0;
+    pointer-events:none;
+  }
+  .hero-inner{position:relative; z-index:1;}
+
+  .grid-motif{
+    position:absolute; top:20px; right:-40px;
+    width:220px; height:220px;
+    opacity:0.5;
+    z-index:0;
+  }
+
+  .brand-row{
+    display:flex; align-items:center; gap:10px;
+    margin-bottom:28px;
+  }
+  .brand-name{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:19px;
+    color:var(--ink);
+  }
+  .eyebrow{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    color:var(--teal-dark);
+    background:var(--teal-tint);
+    padding:6px 12px;
+    border-radius:100px;
+    margin-bottom:22px;
+    opacity:0;
+    animation:fadeUp .6s ease forwards;
+  }
+  .eyebrow .dot{
+    width:6px;height:6px;border-radius:50%;
+    background:var(--teal);
+    animation:pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:1;} 50%{opacity:0.3;}}
+
+  h1{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:clamp(34px,5.4vw,48px);
+    line-height:1.1;
+    margin:0 0 18px;
+    letter-spacing:-0.01em;
+    opacity:0;
+    animation:fadeUp .6s ease .08s forwards;
+  }
+  .sub{
+    font-size:17.5px;
+    color:var(--muted);
+    max-width:54ch;
+    margin:0 0 28px;
+    opacity:0;
+    animation:fadeUp .6s ease .16s forwards;
+  }
+  @keyframes fadeUp{ from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:translateY(0);} }
+
+  .trust-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-bottom:8px;
+    opacity:0;
+    animation:fadeUp .6s ease .24s forwards;
+  }
+  .trust-pill{
+    display:flex; align-items:center; gap:7px;
+    font-size:13px;
+    color:var(--muted);
+    background:var(--surface);
+    border:1px solid var(--line);
+    padding:8px 13px;
+    border-radius:100px;
+  }
+  .trust-pill svg{flex-shrink:0;}
+
+  /* ---------- How it works ---------- */
+  .how{padding:36px 0 8px;}
+  .how h2{
+    font-family:'Fraunces', serif;
+    font-size:22px;
+    font-weight:600;
+    margin:0 0 20px;
+  }
+  .how-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:14px;
+  }
+  @media (max-width:640px){ .how-grid{grid-template-columns:1fr;} }
+  .how-card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:20px;
+  }
+  .how-card .num{
+    font-family:'Fraunces', serif;
+    font-size:15px;
+    color:var(--teal);
+    width:30px;height:30px;
+    border:1.5px solid var(--teal);
+    border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    margin-bottom:14px;
+  }
+  .how-card h3{font-size:15.5px; margin:0 0 6px;}
+  .how-card p{font-size:13.5px; color:var(--muted); margin:0;}
+
+  /* ---------- Steps indicator (tool) ---------- */
+  .tool-section{padding:44px 0 0;}
+  .tool-section h2{
+    font-family:'Fraunces', serif;
+    font-size:22px;
+    font-weight:600;
+    margin:0 0 6px;
+  }
+  .tool-section .tool-sub{color:var(--muted); font-size:14.5px; margin:0 0 22px;}
+
+  .steps{display:flex; gap:6px; margin-bottom:28px;}
+  .step{
+    flex:1; display:flex; align-items:center; gap:10px;
+    padding:12px 14px; border-radius:10px;
+    background:var(--surface); border:1px solid var(--line);
+    font-size:14px; color:var(--muted);
+    transition:all .25s ease;
+  }
+  .step.active{background:var(--teal); border-color:var(--teal); color:#fff;}
+  .step.done{background:var(--teal-tint); border-color:var(--teal); color:var(--teal-dark);}
+  .step .snum{
+    font-family:'IBM Plex Mono', monospace; font-size:13px;
+    width:20px;height:20px; border-radius:50%;
+    border:1.5px solid currentColor;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+
+  .dropzone{
+    background:var(--surface);
+    border:2px dashed var(--line);
+    border-radius:16px;
+    padding:52px 28px;
+    text-align:center;
+    cursor:pointer;
+    transition:border-color .2s ease, background .2s ease, transform .15s ease;
+  }
+  .dropzone:hover{transform:translateY(-2px);}
+  .dropzone:hover, .dropzone.drag{border-color:var(--teal); background:var(--teal-tint);}
+  .dropzone .headline{font-size:17px; font-weight:600; margin-bottom:6px;}
+  .dropzone .hint{font-size:14px; color:var(--muted);}
+  input[type=file]{display:none;}
+
+  .or-row{display:flex; align-items:center; gap:14px; margin:22px 0; color:var(--muted); font-size:14px;}
+  .or-row::before, .or-row::after{content:""; flex:1; height:1px; background:var(--line);}
+
+  button.sample-btn{
+    display:block; width:100%; padding:16px; border-radius:12px;
+    border:1px solid var(--line); background:var(--surface); color:var(--ink);
+    font-family:inherit; font-size:15px; font-weight:500; cursor:pointer;
+    transition:border-color .2s ease, transform .15s ease;
+  }
+  button.sample-btn:hover{border-color:var(--teal); transform:translateY(-1px);}
+  button.sample-btn strong{color:var(--teal-dark);}
+
+  .processing{text-align:center; padding:64px 20px;}
+  .spinner{
+    width:40px;height:40px; margin:0 auto 20px;
+    border:3px solid var(--line); border-top-color:var(--teal);
+    border-radius:50%; animation:spin .8s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .processing p{color:var(--muted); font-size:15px;}
+
+  .summary-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:14px;}
+  @media (max-width:640px){ .summary-grid{grid-template-columns:repeat(2,1fr);} }
+  .stat{background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:16px 12px; text-align:center;}
+  .stat .n{font-family:'Fraunces', serif; font-size:26px; font-weight:600; color:var(--teal-dark);}
+  .stat.flag .n{color:var(--amber);}
+  .stat .l{font-size:11.5px; color:var(--muted); margin-top:2px;}
+
+  .time-saved{
+    display:flex; align-items:center; gap:12px;
+    background:var(--teal-tint);
+    border:1px solid var(--teal);
+    border-radius:12px;
+    padding:14px 16px;
+    margin-bottom:22px;
+    font-size:14px;
+    color:var(--teal-dark);
+  }
+  .time-saved strong{font-family:'Fraunces', serif; font-size:17px;}
+
+  .download-btn{
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    width:100%; padding:18px; border-radius:12px; border:none;
+    background:var(--teal); color:#fff; font-family:inherit;
+    font-size:16px; font-weight:600; cursor:pointer;
+    margin-bottom:32px; transition:background .2s ease, transform .15s ease;
+    box-shadow:0 8px 20px -8px rgba(47,111,94,0.55);
+  }
+  .download-btn:hover{background:var(--teal-dark); transform:translateY(-1px);}
+
+  .compare{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;}
+  @media (max-width:640px){ .compare{grid-template-columns:1fr;} }
+  .panel{background:var(--surface); border:1px solid var(--line); border-radius:12px; overflow:hidden;}
+  .panel .head{padding:12px 14px; font-size:13px; font-weight:600; border-bottom:1px solid var(--line);}
+  .panel.before .head{background:var(--amber-tint); color:var(--amber);}
+  .panel.after .head{background:var(--teal-tint); color:var(--teal-dark);}
+  .tbl-wrap{overflow:auto; max-height:280px;}
+  table{border-collapse:collapse; width:100%; font-size:12px;}
+  th,td{text-align:left; padding:7px 10px; border-bottom:1px solid var(--line); white-space:nowrap;}
+  th{font-family:'IBM Plex Mono', monospace; font-weight:500; color:var(--muted); background:var(--bg); position:sticky; top:0;}
+  .note{font-size:13px; color:var(--muted); text-align:center; margin-top:8px;}
+  .reset-link{display:inline-block; margin-top:26px; font-size:14px; color:var(--teal-dark); cursor:pointer; text-decoration:underline;}
+
+  /* ---------- Skills / credibility ---------- */
+  .skills{padding:56px 0 8px;}
+  .skills h2{font-family:'Fraunces', serif; font-size:22px; font-weight:600; margin:0 0 8px;}
+  .skills p.lead{color:var(--muted); font-size:14.5px; margin:0 0 20px; max-width:56ch;}
+  .skill-pills{display:flex; flex-wrap:wrap; gap:9px;}
+  .skill-pill{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    padding:8px 13px;
+    border-radius:8px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    color:var(--ink);
+  }
+
+  .faq{padding:44px 0 8px;}
+  .faq h2{font-family:'Fraunces', serif; font-size:22px; font-weight:600; margin:0 0 18px;}
+  .faq-item{border-bottom:1px solid var(--line); padding:16px 0;}
+  .faq-item summary{cursor:pointer; font-weight:600; font-size:15px; list-style:none; display:flex; justify-content:space-between; align-items:center;}
+  .faq-item summary::-webkit-details-marker{display:none;}
+  .faq-item summary::after{content:'+'; font-size:20px; color:var(--muted); font-weight:400;}
+  .faq-item[open] summary::after{content:'–';}
+  .faq-item p{color:var(--muted); font-size:14px; margin:10px 0 0;}
+
+  /* ---------- CTA / footer ---------- */
+  .cta{
+    margin:56px 0 0;
+    background:var(--ink);
+    border-radius:20px;
+    padding:40px 32px;
+    text-align:center;
+    color:#F3F4F0;
+  }
+  .cta h2{font-family:'Fraunces', serif; font-size:24px; font-weight:600; margin:0 0 10px;}
+  .cta p{color:#A9B2AC; font-size:14.5px; margin:0 0 24px; max-width:44ch; margin-left:auto; margin-right:auto;}
+  .cta-buttons{display:flex; gap:12px; justify-content:center; flex-wrap:wrap;}
+  .cta-btn{
+    padding:14px 24px; border-radius:10px; font-size:14.5px; font-weight:600;
+    text-decoration:none; display:inline-flex; align-items:center; gap:8px;
+    transition:transform .15s ease;
+  }
+  .cta-btn:hover{transform:translateY(-2px);}
+  .cta-btn.primary{background:var(--teal); color:#fff;}
+  .cta-btn.secondary{background:transparent; border:1px solid #4A544D; color:#F3F4F0;}
+
+  .social-row{display:flex; gap:12px; justify-content:center; margin-top:22px;}
+  .social-icon{
+    display:flex; align-items:center; justify-content:center;
+    width:38px; height:38px; border-radius:50%;
+    border:1px solid #4A544D; color:#A9B2AC;
+    transition:border-color .2s ease, color .2s ease;
+  }
+  .social-icon:hover{border-color:var(--teal); color:#fff;}
+
+  footer{padding:28px 0 56px; font-size:13px; color:var(--muted); text-align:center;}
+  .hidden{display:none;}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-bg"></div>
+  <div class="wrap hero-inner">
+    <!-- LOGO + BRAND NAME — change "SheetPolish" text below to rename -->
+    <div class="brand-row">
+      <svg width="34" height="34" viewBox="0 0 100 100" style="flex-shrink:0;">
+        <rect width="100" height="100" rx="22" fill="#2F6F5E"/>
+        <g stroke="#F3F4F0" stroke-width="2.8" stroke-linecap="round">
+          <line x1="22" y1="36" x2="78" y2="36"/><line x1="22" y1="52" x2="78" y2="52"/><line x1="22" y1="68" x2="78" y2="68"/>
+          <line x1="38" y1="24" x2="38" y2="78"/><line x1="60" y1="24" x2="60" y2="78"/>
+        </g>
+        <rect x="60" y="52" width="18" height="16" fill="#B5652B"/>
+        <path d="M64 60 L67 63.5 L74 56.5" stroke="#F3F4F0" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span class="brand-name">SheetPolish</span>
+    </div>
+    <!-- MAIN HEADLINE — the big text at the top of the page -->
+    <div class="eyebrow"><span class="dot"></span> Free tool — runs entirely in your browser, no signup</div>
+    <h1>Turn messy spreadsheets into clean data — in seconds</h1>
+    <p class="sub">Upload any Excel or CSV file. Duplicate rows disappear, dates line up, names get tidied, and anything that needs a second look gets flagged for you. Try it below with your own file, or a sample.</p>
+    <div class="trust-row">
+      <div class="trust-pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2F6F5E" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z"/></svg> Your file never leaves your device</div>
+      <div class="trust-pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2F6F5E" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12l2.5 2.5L16 9"/></svg> No account needed</div>
+      <div class="trust-pill"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2F6F5E" stroke-width="2"><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z"/></svg> Results in under 3 seconds</div>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="how">
+    <h2>How it works</h2>
+    <div class="how-grid">
+      <div class="how-card">
+        <div class="num">1</div>
+        <h3>Upload your file</h3>
+        <p>Drop in any spreadsheet — customer lists, order logs, survey exports, anything.</p>
+      </div>
+      <div class="how-card">
+        <div class="num">2</div>
+        <h3>It gets cleaned automatically</h3>
+        <p>Duplicates removed, dates standardized, text tidied, gaps flagged — all instantly.</p>
+      </div>
+      <div class="how-card">
+        <div class="num">3</div>
+        <h3>Download and use it</h3>
+        <p>Get a ready-to-use file back, plus a clear before/after summary of what changed.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="tool-section" id="tool">
+    <h2>Try it now</h2>
+    <p class="tool-sub">Nothing to install, nothing to configure. Just upload and watch it work.</p>
+
+    <div class="steps">
+      <div class="step active" id="step1"><span class="snum">1</span> Upload</div>
+      <div class="step" id="step2"><span class="snum">2</span> Clean</div>
+      <div class="step" id="step3"><span class="snum">3</span> Download</div>
+    </div>
+
+    <div id="uploadView">
+      <div class="dropzone" id="dropzone">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#2F6F5E" stroke-width="1.6"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+        <div class="headline">Drop your file here, or click to choose</div>
+        <div class="hint">Accepts .xlsx, .xls, or .csv</div>
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+      </div>
+      <div class="or-row">or</div>
+      <button class="sample-btn" id="sampleBtn">Don't have a file handy? <strong>Try it with sample data →</strong></button>
+    </div>
+
+    <div id="processingView" class="hidden">
+      <div class="processing">
+        <div class="spinner"></div>
+        <p id="processingText">Reading your file…</p>
+      </div>
+    </div>
+
+    <div id="resultsView" class="hidden">
+      <div class="summary-grid" id="summaryGrid"></div>
+      <div class="time-saved" id="timeSaved"></div>
+
+      <button class="download-btn" id="downloadBtn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M12 4v12M12 16l-4-4M12 16l4-4"/><path d="M4 18v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+        Download cleaned file
+      </button>
+
+      <div class="compare">
+        <div class="panel before"><div class="head">Before</div><div class="tbl-wrap" id="beforeTable"></div></div>
+        <div class="panel after"><div class="head">After</div><div class="tbl-wrap" id="afterTable"></div></div>
+      </div>
+      <p class="note">Showing the first 8 rows as a preview. Your download contains every row.</p>
+      <a class="reset-link" id="resetLink">Clean another file</a>
+    </div>
+  </div>
+
+  <div class="skills">
+    <h2>Built by someone who does this for a living</h2>
+    <p class="lead">This tool runs the same kind of logic I write in Python for freelance data projects — just moved into the browser so anyone can try it instantly.</p>
+    <div class="skill-pills">
+      <span class="skill-pill">Python</span>
+      <span class="skill-pill">Pandas</span>
+      <span class="skill-pill">Excel / VBA</span>
+      <span class="skill-pill">Flask</span>
+      <span class="skill-pill">MySQL</span>
+      <span class="skill-pill">Data Cleaning</span>
+      <span class="skill-pill">Automation Scripts</span>
+    </div>
+  </div>
+
+  <div class="faq">
+    <h2>Common questions</h2>
+    <details class="faq-item" open>
+      <summary>Is my data safe?</summary>
+      <p>Yes. Everything happens inside your browser using JavaScript — your file is never uploaded to a server or seen by anyone. You could disconnect from the internet after the page loads and it would still work.</p>
+    </details>
+    <details class="faq-item">
+      <summary>What kind of files does it handle?</summary>
+      <p>Any .xlsx, .xls, or .csv file — customer lists, sales logs, survey exports, inventory sheets, and similar row-and-column data.</p>
+    </details>
+    <details class="faq-item">
+      <summary>What if my file needs more than this?</summary>
+      <p>This demo covers the most common cleanup tasks. For larger files, custom rules, merging multiple sheets, or ongoing automation, that's exactly the kind of project I take on as a freelancer — see the contact section below.</p>
+    </details>
+  </div>
+
+  <div class="cta">
+    <h2>Have a messier problem than this?</h2>
+    <p>I take on data cleaning, Excel automation, and Python scripting projects — one-off cleanups or ongoing recurring reports.</p>
+    <!-- CONTACT LINKS — update the Upwork "#" with your real profile link once it's live -->
+    <div class="cta-buttons">
+      <a href="#" target="_blank" rel="noopener noreferrer" class="cta-btn primary">Hire me on Upwork</a>
+      <a href="mailto:sonukumarfact1@gmail.com" class="cta-btn secondary">Email me directly</a>
+    </div>
+    <!-- SOCIAL MEDIA LINKS -->
+    <div class="social-row">
+      <a href="https://instagram.com/sheetpolish_data" target="_blank" rel="noopener noreferrer" class="social-icon" aria-label="Instagram">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg>
+      </a>
+      <a href="https://facebook.com/sheetpolish_data" target="_blank" rel="noopener noreferrer" class="social-icon" aria-label="Facebook">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 8h2V5h-2a4 4 0 00-4 4v2H9v3h2v6h3v-6h2.5l.5-3H14V9a1 1 0 011-1z"/></svg>
+      </a>
+    </div>
+  </div>
+
+  <footer>SheetPolish — data cleaning &amp; spreadsheet automation. Built by Sonu Kumar.</footer>
+</div>
+
+<script>
+// ============================================================
+// SAMPLE DATA — shown when someone clicks "Try it with sample data"
+// Edit this text to change what the demo dataset looks like.
+// Format: same as a CSV file — comma separated, one row per line.
+// ============================================================
+const SAMPLE_CSV = `Order ID,Customer Name,Phone Number,Email,Order Date,City,Product,Amount
+1001,manoj verma,9896233790,MANOJ.VERMA29@gmail.com,04/11/2024,kanpur,Keyboard,499
+1002,SNEHA CHAUHAN,9702632297,sneha.chauhan84@gmail.com,2024-05-14,Lucknow,Wireless Mouse,349
+1003,Kavita Mishra,,kavita.mishra98@gmail.com,03-07-2024,jaipur,Wireless Mouse,1299
+1004,suresh verma,9184611066,suresh.verma81@gmail.com,28/06/2024,Mumbai,Laptop Stand,599
+1005,priya singh,9508157429,priya.singh82@gmail.com,06-06-2025,lucknow,Keyboard,349
+1005,PRIYA SINGH,9508157429,priya.singh82@gmail.com,06-06-2025,Lucknow,Keyboard,349
+1006,Suresh Singh,,suresh.singh82@gmail.com,08-11-2025,Etah,Power Bank,999
+1007,vikas verma,9709004943,vikas.verma41@gmail.com,16-07-2025,lucknow,Mobile Cover,1499
+1008,Vikas Rana,9726563708,vikas.rana29@gmail.com,05/09/2025,Delhi,USB Cable,349
+1009,deepak mishra,9513140753,deepak.mishra60@gmail.com,18-01-2024,Pune,Power Bank,299
+1010,VIKAS MISHRA,,vikas.mishra93@gmail.com,09-09-2024,Mumbai,Bluetooth Speaker,1499
+1011,anjali singh,9501486939,anjali.singh70@gmail.com,17-01-2025,Delhi,Power Bank,599
+,,,,,,,
+1200,TEST TEST,,notanemail,31/13/2024,,N/A,`;
+
+let cleanedRows = [], cleanedHeaders = [], rawPreview = [], originalHeaders = [];
+
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const sampleBtn = document.getElementById('sampleBtn');
+
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropzone.classList.remove('drag');
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => { if (e.target.files.length) handleFile(e.target.files[0]); });
+sampleBtn.addEventListener('click', () => handleSample());
+document.getElementById('resetLink').addEventListener('click', resetTool);
+document.getElementById('downloadBtn').addEventListener('click', downloadCleaned);
+
+function setStep(n){
+  [1,2,3].forEach(i=>{
+    const el = document.getElementById('step'+i);
+    el.classList.remove('active','done');
+    if (i < n) el.classList.add('done');
+    if (i === n) el.classList.add('active');
+  });
+}
+function showView(id){
+  ['uploadView','processingView','resultsView'].forEach(v=>{
+    document.getElementById(v).classList.toggle('hidden', v !== id);
+  });
+}
+
+function handleSample(){
+  showView('processingView'); setStep(2);
+  document.getElementById('processingText').textContent = 'Reading sample data…';
+  setTimeout(() => { processRows(parseCSV(SAMPLE_CSV)); }, 500);
+}
+
+// ============================================================
+// FILE VALIDATION — controls what files are allowed and how big
+// Change MAX_FILE_SIZE_MB to allow bigger/smaller files.
+// ============================================================
+const MAX_FILE_SIZE_MB = 15;
+const ALLOWED_EXTENSIONS = ['.xlsx', '.xls', '.csv'];
+
+function handleFile(file){
+  const nameLower = file.name.toLowerCase();
+  const hasAllowedExt = ALLOWED_EXTENSIONS.some(ext => nameLower.endsWith(ext));
+  if (!hasAllowedExt) {
+    alert('Please choose a .xlsx, .xls, or .csv file.');
+    return;
+  }
+  if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+    alert('That file is larger than ' + MAX_FILE_SIZE_MB + 'MB. Please try a smaller file.');
+    return;
+  }
+
+  showView('processingView'); setStep(2);
+  document.getElementById('processingText').textContent = 'Reading ' + file.name + '…';
+  const reader = new FileReader();
+  reader.onload = function(e){
+    setTimeout(() => {
+      try {
+        let rows;
+        if (file.name.toLowerCase().endsWith('.csv')) {
+          rows = parseCSV(e.target.result);
+        } else {
+          const wb = XLSX.read(e.target.result, {type:'array', cellDates:false});
+          const sheet = wb.Sheets[wb.SheetNames[0]];
+          rows = XLSX.utils.sheet_to_json(sheet, {header:1, defval:''});
+        }
+        processRows(rows);
+      } catch(err) {
+        document.getElementById('processingText').innerHTML =
+          "Couldn't read that file — it may be corrupted or in an unsupported format.<br><br>" +
+          '<a class="reset-link" onclick="resetTool()">Try another file</a>';
+      }
+    }, 400);
+  };
+  reader.onerror = function(){
+    document.getElementById('processingText').innerHTML =
+      "Something went wrong reading that file.<br><br>" +
+      '<a class="reset-link" onclick="resetTool()">Try another file</a>';
+  };
+  if (file.name.toLowerCase().endsWith('.csv')) reader.readAsText(file);
+  else reader.readAsArrayBuffer(file);
+}
+
+function parseCSV(text){ return text.trim().split(/\r?\n/).map(line => line.split(',')); }
+function titleCase(str){ return str.replace(/\w\S*/g, t => t.charAt(0).toUpperCase() + t.slice(1).toLowerCase()); }
+
+function tryParseDate(val){
+  val = String(val).trim();
+  let m;
+  if ((m = val.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/))) return normDate(m[3],m[2],m[1]);
+  if ((m = val.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/))) return normDate(m[1],m[2],m[3]);
+  if ((m = val.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/))) return normDate(m[3],m[2],m[1]);
+  return null;
+}
+function normDate(y,m,d){
+  const mm = parseInt(m,10), dd = parseInt(d,10), yy = parseInt(y,10);
+  if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+  return String(dd).padStart(2,'0') + '-' + String(mm).padStart(2,'0') + '-' + yy;
+}
+
+// ============================================================
+// MAIN CLEANING LOGIC — this is where the actual "cleaning" happens.
+// It looks at column headers (like "Name", "Date", "Email", "Phone")
+// and applies rules automatically based on what it finds.
+// Change the logic below to add new rules or adjust existing ones.
+// ============================================================
+function processRows(rows){
+  rows = rows.filter(r => r.some(c => String(c).trim() !== ''));
+  originalHeaders = rows[0].map(h => String(h).trim());
+  rawPreview = rows.slice(1, 9);
+  const dataRows = rows.slice(1);
+
+  const dateColIdx = originalHeaders.findIndex(h => /date/i.test(h));
+  const nameColIdx = originalHeaders.findIndex(h => /name/i.test(h));
+  const cityColIdx = originalHeaders.findIndex(h => /city/i.test(h));
+  const emailColIdx = originalHeaders.findIndex(h => /email/i.test(h));
+  const phoneColIdx = originalHeaders.findIndex(h => /phone/i.test(h));
+
+  let junkCount = 0;
+
+  let cleaned = dataRows.map(row => {
+    let r = row.map(c => (c === undefined || c === null) ? '' : String(c).trim());
+    if (nameColIdx > -1 && r[nameColIdx]) r[nameColIdx] = titleCase(r[nameColIdx]);
+    if (cityColIdx > -1 && r[cityColIdx]) r[cityColIdx] = titleCase(r[cityColIdx]);
+    if (emailColIdx > -1 && r[emailColIdx]) r[emailColIdx] = r[emailColIdx].toLowerCase();
+    if (dateColIdx > -1 && r[dateColIdx]) {
+      const parsed = tryParseDate(r[dateColIdx]);
+      if (parsed) r[dateColIdx] = parsed;
+    }
+    return r;
+  });
+
+  if (nameColIdx > -1) {
+    const before = cleaned.length;
+    cleaned = cleaned.filter(r => !/^test/i.test(r[nameColIdx] || ''));
+    junkCount = before - cleaned.length;
+  }
+
+  const seen = new Set();
+  const beforeDedup = cleaned.length;
+  cleaned = cleaned.filter(r => {
+    const key = r.join('|');
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  const dupesRemoved = beforeDedup - cleaned.length;
+
+  let missingCount = 0;
+  cleaned.forEach(r => {
+    let flag = false;
+    if (phoneColIdx > -1 && !r[phoneColIdx]) flag = true;
+    if (emailColIdx > -1 && r[emailColIdx] && !/^[^@\s]+@[^@\s]+\.[a-zA-Z]+$/.test(r[emailColIdx])) flag = true;
+    if (flag) missingCount++;
+  });
+
+  cleanedHeaders = originalHeaders.concat(['Needs Review']);
+  cleanedRows = cleaned.map(r => {
+    let flag = false;
+    if (phoneColIdx > -1 && !r[phoneColIdx]) flag = true;
+    if (emailColIdx > -1 && r[emailColIdx] && !/^[^@\s]+@[^@\s]+\.[a-zA-Z]+$/.test(r[emailColIdx])) flag = true;
+    return r.concat([flag ? 'Yes' : '']);
+  });
+
+  renderResults({
+    original: dataRows.length,
+    duplicates: dupesRemoved,
+    junk: junkCount,
+    flagged: missingCount,
+    final: cleanedRows.length
+  });
+}
+
+function animateNumber(el, target){
+  let cur = 0;
+  const step = Math.max(1, Math.ceil(target / 20));
+  const iv = setInterval(() => {
+    cur += step;
+    if (cur >= target) { cur = target; clearInterval(iv); }
+    el.textContent = cur;
+  }, 25);
+}
+
+function renderResults(stats){
+  document.getElementById('summaryGrid').innerHTML = `
+    <div class="stat"><div class="n" id="n1">0</div><div class="l">Original rows</div></div>
+    <div class="stat"><div class="n" id="n2">0</div><div class="l">Duplicates removed</div></div>
+    <div class="stat flag"><div class="n" id="n3">0</div><div class="l">Flagged for review</div></div>
+    <div class="stat"><div class="n" id="n4">0</div><div class="l">Clean rows</div></div>
+  `;
+  animateNumber(document.getElementById('n1'), stats.original);
+  animateNumber(document.getElementById('n2'), stats.duplicates);
+  animateNumber(document.getElementById('n3'), stats.flagged);
+  animateNumber(document.getElementById('n4'), stats.final);
+
+  const estSeconds = Math.round(stats.original * 8); // ~8 sec/row manual estimate
+  const estMinutes = Math.max(1, Math.round(estSeconds / 60));
+  document.getElementById('timeSaved').innerHTML =
+    `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#234F43" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+     Doing this by hand would take roughly <strong>${estMinutes} min</strong> — this took under 3 seconds.`;
+
+  document.getElementById('beforeTable').innerHTML = buildTable(originalHeaders, rawPreview);
+  document.getElementById('afterTable').innerHTML = buildTable(cleanedHeaders, cleanedRows.slice(0,8));
+
+  showView('resultsView');
+  setStep(3);
+}
+
+function escapeHTML(str){
+  // Prevents any text inside an uploaded file from being executed as HTML/JS.
+  // Without this, a cell containing something like <img src=x onerror=...>
+  // would run in the page instead of just being displayed as text.
+  const div = document.createElement('div');
+  div.textContent = str === undefined || str === null ? '' : String(str);
+  return div.innerHTML;
+}
+
+function buildTable(headers, rows){
+  let html = '<table><thead><tr>' + headers.map(h=>`<th>${escapeHTML(h)}</th>`).join('') + '</tr></thead><tbody>';
+  rows.forEach(r => {
+    html += '<tr>' + headers.map((_,i)=>`<td>${escapeHTML(r[i])}</td>`).join('') + '</tr>';
+  });
+  html += '</tbody></table>';
+  return html;
+}
+
+function downloadCleaned(){
+  const ws = XLSX.utils.aoa_to_sheet([cleanedHeaders, ...cleanedRows]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Cleaned Data');
+  XLSX.writeFile(wb, 'cleaned_data.xlsx');
+}
+
+function resetTool(){
+  fileInput.value = '';
+  showView('uploadView');
+  setStep(1);
+}
+</script>
+</body>
+</html>
